@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<title>Bảng điều khiển Bot</title>
+<style>
+:root{--bg:#0f172a;--card:#1e293b;--line:#334155;--txt:#e2e8f0;--muted:#94a3b8;--accent:#3b82f6;--ok:#22c55e;--err:#ef4444;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--txt);}
+header{padding:16px 20px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10;}
+header h1{margin:0;font-size:18px;}
+header .sub{color:var(--muted);font-size:12px;margin-top:4px;}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:56px;z-index:9;}
+.tab{padding:8px 12px;border-radius:8px;cursor:pointer;font-size:14px;color:var(--muted);}
+.tab.active{background:var(--accent);color:#fff;}
+main{padding:16px;max-width:900px;margin:0 auto;}
+.panel{display:none;}
+.panel.active{display:block;}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px;}
+.card h2{margin:0 0 12px;font-size:15px;}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px;}
+input,textarea,select{width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);background:#0b1220;color:var(--txt);font-size:14px;}
+textarea{min-height:90px;resize:vertical;}
+button{background:var(--accent);color:#fff;border:none;padding:10px 16px;border-radius:8px;font-size:14px;cursor:pointer;margin-top:10px;}
+button.sec{background:#475569;}
+button.danger{background:var(--err);}
+button:disabled{opacity:.5;}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;}
+th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);}
+th{color:var(--muted);}
+.row{display:flex;gap:10px;flex-wrap:wrap;}
+.row>div{flex:1;min-width:140px;}
+.chk{display:flex;align-items:center;gap:8px;padding:6px 0;}
+.chk input{width:auto;}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;}
+.pill.ok{background:rgba(34,197,94,.2);color:var(--ok);}
+.pill.err{background:rgba(239,68,68,.2);color:var(--err);}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111827;border:1px solid var(--line);padding:12px 18px;border-radius:10px;opacity:0;transition:.3s;z-index:50;max-width:90%;}
+.toast.show{opacity:1;}
+.muted{color:var(--muted);font-size:12px;}
+code{background:#0b1220;padding:2px 6px;border-radius:6px;}
+</style>
+</head>
+<body>
+<header>
+<h1>🤖 Bảng điều khiển Bot</h1>
+<div class="sub" id="statusLine">Đang tải...</div>
+</header>
+<div class="tabs">
+<div class="tab active" data-p="broadcast">📢 Thông báo</div>
+<div class="tab" data-p="members">👥 Thành viên</div>
+<div class="tab" data-p="groups">🗂 Nhóm</div>
+<div class="tab" data-p="status">🩺 Lỗi & Trạng thái</div>
+<div class="tab" data-p="config">🔐 Cấu hình & API</div>
+</div>
+<main>
+<div class="panel active" id="p-broadcast">
+<div class="card">
+<h2>Gửi thông báo tới nhóm</h2>
+<label>Nội dung</label>
+<textarea id="bcContent" placeholder="Nhập nội dung..."></textarea>
+<label>Chọn nơi gửi</label>
+<div class="chk"><input type="checkbox" id="bcAll"><label for="bcAll" style="margin:0;color:var(--txt)">Tất cả các nhóm</label></div>
+<div id="bcGroups"></div>
+<button id="bcSend">📢 Gửi thông báo</button>
+</div>
+</div>
+<div class="panel" id="p-members">
+<div class="card">
+<h2>Quản lý thành viên tag</h2>
+<label>Chọn nhóm</label>
+<select id="memGroup"></select>
+<div id="memTableWrap"></div>
+</div>
+<div class="card">
+<h2>Thêm thành viên thủ công</h2>
+<p class="muted">Người chưa có @username vẫn tag được nếu điền User ID (số).</p>
+<div class="row">
+<div><label>User ID (số)</label><input id="addUid" placeholder="vd: 123456789"></div>
+<div><label>Username (không cần @)</label><input id="addUname" placeholder="vd: nguyenvana"></div>
+</div>
+<label>Tên hiển thị</label>
+<input id="addName" placeholder="vd: Nguyễn Văn A">
+<button id="addMemBtn">➕ Thêm vào nhóm đang chọn</button>
+</div>
+</div>
+<div class="panel" id="p-groups">
+<div class="card">
+<h2>Danh sách nhóm</h2>
+<div id="grpTableWrap"></div>
+</div>
+<div class="card">
+<h2>Thêm nhóm thủ công</h2>
+<div class="row">
+<div><label>Group ID (thường bắt đầu -100...)</label><input id="addGid" placeholder="vd: -1001234567890"></div>
+<div><label>Tên nhóm</label><input id="addGname" placeholder="vd: Nhóm A"></div>
+</div>
+<button id="addGrpBtn">➕ Thêm nhóm</button>
+</div>
+</div>
+<div class="panel" id="p-status">
+<div class="card">
+<h2>Trạng thái Webhook</h2>
+<div id="whBox">Đang tải...</div>
+<button class="sec" id="whCheck">🔄 Kiểm tra lại</button>
+<button id="whSet">🔁 Đăng ký lại Webhook</button>
+</div>
+<div class="card">
+<h2>Nhật ký lỗi gần đây</h2>
+<button class="sec" id="errRefresh">🔄 Làm mới</button>
+<div id="errWrap"></div>
+</div>
+</div>
+<div class="panel" id="p-config">
+<div class="card">
+<h2>API dịch thuật</h2>
+<label>Nhà cung cấp</label>
+<select id="cfgProvider">
+<option value="google_free">google_free (miễn phí, không cần key)</option>
+<option value="mymemory">mymemory (miễn phí dự phòng)</option>
+<option value="google_v2">google_v2 (Google Cloud, cần API key)</option>
+</select>
+<label>API Key (chỉ cần khi dùng google_v2)</label>
+<input id="cfgApiKey" placeholder="Dán API key nếu có">
+<button class="sec" id="apiCheck">🧪 Kiểm tra API dịch</button>
+<div id="apiCheckBox" class="muted" style="margin-top:8px"></div>
+</div>
+<div class="card">
+<h2>Cấu hình bot</h2>
+<label>Lệnh bí mật (SECRET_CMD)</label>
+<input id="cfgSecret">
+<div class="row">
+<div><label>Chờ giữa 2 lần /all (giây)</label><input id="cfgCdAll" type="number"></div>
+<div><label>Chờ giữa 2 lần /dich (giây)</label><input id="cfgCdDich" type="number"></div>
+</div>
+<label>Admin ID</label>
+<input id="cfgAdminId">
+<label>Bot Token (để trống nếu không đổi)</label>
+<input id="cfgToken" placeholder="Đang dùng: đã ẩn">
+<button id="cfgSave">💾 Lưu cấu hình</button>
+</div>
+</div>
+</main>
+<div class="toast" id="toast"></div>
+<script>
+try { if (window.Telegram && Telegram.WebApp) { Telegram.WebApp.ready(); Telegram.WebApp.expand(); document.body.style.paddingBottom='80px'; } } catch(e){}
+/* ==== CẤU HÌNH ==== */
+// Địa chỉ Web App (Apps Script) — đóng vai trò "kho dữ liệu"/API. Link này KHÔNG đổi khi bạn Deploy phiên bản mới.
+var API_URL = "https://script.google.com/macros/s/AKfycbyBJ2MGY31qlKFyuAF0cihlqdSunx-2PRSm4AFu-1A0NqlskkftNC9UrfYCMQwOp9Ov1Q/exec";
+// Mã quản trị: lấy từ sau dấu # trên link (không lưu trong file), nếu trống thì hỏi.
+var ADMIN_KEY = (location.hash || "").replace(/^#/, "").trim();
+if (!ADMIN_KEY) { try { ADMIN_KEY = (prompt("Nhập mã quản trị (ADMIN_KEY):") || "").trim(); } catch(e){} }
+var STATE = { groups: [], config: {} };
+var API_MAP = {
+  adminInit:         { api:"init",          args:[] },
+  adminGetMembers:   { api:"members",       args:["gid"] },
+  adminRenameGroup:  { api:"renameGroup",   args:["gid","name"] },
+  adminDeleteGroup:  { api:"deleteGroup",   args:["gid"] },
+  adminDeleteMember: { api:"deleteMember",  args:["gid","uid"] },
+  adminAddMember:    { api:"addMember",     args:["gid","uid","un","nm"] },
+  adminAddGroup:     { api:"addGroup",      args:["gid","name"] },
+  adminBroadcast:    { api:"broadcast",     args:["targets","content"], json:["targets"] },
+  adminCheckWebhook: { api:"checkWebhook",  args:[] },
+  adminGetErrors:    { api:"getErrors",     args:[] },
+  adminSetWebhook:   { api:"setWebhook",    args:[] },
+  adminSetConfig:    { api:"setConfig",     args:["payload"], json:["payload"] },
+  adminCheckTranslate:{ api:"checkTranslate", args:[] }
+};
+function gcall(name){
+  var extra = Array.prototype.slice.call(arguments, 2); // bỏ name + ADMIN_KEY
+  var m = API_MAP[name];
+  return new Promise(function(res, rej){
+    if(!m){ rej(new Error("Unknown API: "+name)); return; }
+    if(!ADMIN_KEY){ rej(new Error("Thiếu mã quản trị")); return; }
+    var qs = "?api=" + encodeURIComponent(m.api) + "&key=" + encodeURIComponent(ADMIN_KEY);
+    (m.args||[]).forEach(function(argName, i){
+      var v = extra[i];
+      if(m.json && m.json.indexOf(argName) >= 0) v = JSON.stringify(v);
+      qs += "&" + argName + "=" + encodeURIComponent(v == null ? "" : v);
+    });
+    fetch(API_URL + qs, { method:"GET" })
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        if(j && j.ok) res(j.data);
+        else rej(new Error((j && j.error) || "Lỗi không rõ"));
+      })
+      .catch(function(e){ rej(new Error(e && e.message || "Lỗi mạng")); });
+  });
+}
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2600);}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+document.querySelectorAll('.tab').forEach(function(tab){
+  tab.addEventListener('click',function(){
+    document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+    document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
+    tab.classList.add('active');
+    document.getElementById('p-'+tab.getAttribute('data-p')).classList.add('active');
+  });
+});
+function renderGroupsUI(){
+  var bc=document.getElementById('bcGroups');bc.innerHTML='';
+  STATE.groups.forEach(function(g){
+    var id='bcg_'+g.id;
+    bc.innerHTML+='<div class="chk"><input type="checkbox" class="bcg" value="'+esc(g.id)+'" id="'+id+'"><label for="'+id+'" style="margin:0;color:var(--txt)">'+esc(g.name||g.id)+'</label></div>';
+  });
+  var sel=document.getElementById('memGroup');sel.innerHTML='';
+  STATE.groups.forEach(function(g){var o=document.createElement('option');o.value=g.id;o.textContent=(g.name||g.id);sel.appendChild(o);});
+  var gw=document.getElementById('grpTableWrap');
+  if(!STATE.groups.length){gw.innerHTML='<p class="muted">Chưa có nhóm nào.</p>';}
+  else{
+    var h='<table><tr><th>Tên</th><th>Group ID</th><th></th></tr>';
+    STATE.groups.forEach(function(g){
+      h+='<tr><td><input value="'+esc(g.name)+'" class="gname" data-id="'+esc(g.id)+'" style="padding:6px"></td><td><code>'+esc(g.id)+'</code></td><td><button class="sec btnRename" data-id="'+esc(g.id)+'">Lưu tên</button> <button class="danger btnDelGroup" data-id="'+esc(g.id)+'">Xoá</button></td></tr>';
+    });
+    gw.innerHTML=h+'</table>';
+  }
+}
+function loadMembers(){
+  var gid=document.getElementById('memGroup').value;
+  if(!gid){document.getElementById('memTableWrap').innerHTML='<p class="muted">Chọn một nhóm.</p>';return;}
+  document.getElementById('memTableWrap').innerHTML='<p class="muted">Đang tải...</p>';
+  gcall('adminGetMembers',ADMIN_KEY,gid).then(function(list){
+    if(!list.length){document.getElementById('memTableWrap').innerHTML='<p class="muted">Nhóm này chưa có thành viên.</p>';return;}
+    var h='<table><tr><th>Tên</th><th>Username</th><th>User ID</th><th></th></tr>';
+    list.forEach(function(m){
+      h+='<tr><td>'+esc(m.hoTen)+'</td><td>'+(m.username?('@'+esc(m.username)):'<span class="muted">(không có)</span>')+'</td><td><code>'+esc(m.userId)+'</code></td><td><button class="danger btnDelMem" data-gid="'+esc(gid)+'" data-uid="'+esc(m.userId)+'">Xoá</button></td></tr>';
+    });
+    document.getElementById('memTableWrap').innerHTML=h+'</table>';
+  }).catch(function(e){toast('Lỗi: '+e.message);});
+}
+document.getElementById('grpTableWrap').addEventListener('click',function(ev){
+  var b=ev.target;
+  if(b.classList.contains('btnRename')){
+    var gid=b.getAttribute('data-id');
+    var inp=document.querySelector('.gname[data-id="'+gid+'"]');
+    gcall('adminRenameGroup',ADMIN_KEY,gid,inp?inp.value:'').then(function(){toast('Đã lưu tên');return refresh();});
+  }else if(b.classList.contains('btnDelGroup')){
+    if(!confirm('Xoá nhóm này?'))return;
+    gcall('adminDeleteGroup',ADMIN_KEY,b.getAttribute('data-id')).then(function(){toast('Đã xoá nhóm');return refresh();});
+  }
+});
+document.getElementById('memTableWrap').addEventListener('click',function(ev){
+  var b=ev.target;
+  if(b.classList.contains('btnDelMem')){
+    if(!confirm('Xoá thành viên này?'))return;
+    gcall('adminDeleteMember',ADMIN_KEY,b.getAttribute('data-gid'),b.getAttribute('data-uid')).then(function(){toast('Đã xoá');loadMembers();});
+  }
+});
+document.getElementById('memGroup').addEventListener('change',loadMembers);
+document.getElementById('addMemBtn').addEventListener('click',function(){
+  var gid=document.getElementById('memGroup').value;
+  if(!gid){toast('Chưa chọn nhóm');return;}
+  var uid=document.getElementById('addUid').value.trim();
+  var un=document.getElementById('addUname').value.trim().replace(/^@/,'');
+  var nm=document.getElementById('addName').value.trim();
+  if(!uid&&!un){toast('Cần ít nhất User ID hoặc Username');return;}
+  gcall('adminAddMember',ADMIN_KEY,gid,uid,un,nm).then(function(r){
+    if(r===false){toast('Người này đã có trong nhóm');}else{toast('Đã thêm');document.getElementById('addUid').value='';document.getElementById('addUname').value='';document.getElementById('addName').value='';loadMembers();}
+  }).catch(function(e){toast('Lỗi: '+e.message);});
+});
+document.getElementById('addGrpBtn').addEventListener('click',function(){
+  var gid=document.getElementById('addGid').value.trim();
+  var nm=document.getElementById('addGname').value.trim();
+  if(!gid){toast('Cần Group ID');return;}
+  gcall('adminAddGroup',ADMIN_KEY,gid,nm).then(function(){toast('Đã thêm nhóm');document.getElementById('addGid').value='';document.getElementById('addGname').value='';return refresh();});
+});
+document.getElementById('bcSend').addEventListener('click',function(){
+  var content=document.getElementById('bcContent').value.trim();
+  if(!content){toast('Chưa nhập nội dung');return;}
+  var targets=[];
+  if(document.getElementById('bcAll').checked){targets=STATE.groups.map(function(g){return g.id;});}
+  else{document.querySelectorAll('.bcg:checked').forEach(function(c){targets.push(c.value);});}
+  if(!targets.length){toast('Chưa chọn nhóm');return;}
+  if(!confirm('Gửi tới '+targets.length+' nhóm?'))return;
+  var btn=this;btn.disabled=true;btn.textContent='Đang gửi...';
+  gcall('adminBroadcast',ADMIN_KEY,targets,content).then(function(r){
+    toast('Đã gửi tới '+r.ok+'/'+r.total+' nhóm');btn.disabled=false;btn.textContent='📢 Gửi thông báo';
+  }).catch(function(e){toast('Lỗi: '+e.message);btn.disabled=false;btn.textContent='📢 Gửi thông báo';});
+});
+function loadWebhook(){
+  document.getElementById('whBox').innerHTML='Đang kiểm tra...';
+  gcall('adminCheckWebhook',ADMIN_KEY).then(function(w){
+    var ok=w.url&&!w.last_error_message;
+    document.getElementById('whBox').innerHTML='<p>Trạng thái: '+(ok?'<span class="pill ok">Đang chạy</span>':'<span class="pill err">Có vấn đề</span>')+'</p><p class="muted">URL: <code>'+esc(w.url||'(chưa đặt)')+'</code></p><p class="muted">Đang chờ: '+(w.pending_update_count||0)+'</p>'+(w.last_error_message?('<p class="muted">Lỗi gần nhất: '+esc(w.last_error_message)+'</p>'):'');
+  }).catch(function(e){document.getElementById('whBox').innerHTML='<span class="pill err">Lỗi: '+esc(e.message)+'</span>';});
+}
+function loadErrors(){
+  document.getElementById('errWrap').innerHTML='<p class="muted">Đang tải...</p>';
+  gcall('adminGetErrors',ADMIN_KEY).then(function(rows){
+    if(!rows.length){document.getElementById('errWrap').innerHTML='<p class="muted">Không có lỗi nào.</p>';return;}
+    var h='<table><tr><th>Thời gian</th><th>Mã</th><th>Hàm</th><th>Chi tiết</th></tr>';
+    rows.forEach(function(r){h+='<tr><td>'+esc(r[0])+'</td><td>'+esc(r[1])+'</td><td>'+esc(r[2])+'</td><td>'+esc(r[3])+'</td></tr>';});
+    document.getElementById('errWrap').innerHTML=h+'</table>';
+  }).catch(function(e){document.getElementById('errWrap').innerHTML='<span class="pill err">Lỗi: '+esc(e.message)+'</span>';});
+}
+document.getElementById('whCheck').addEventListener('click',loadWebhook);
+document.getElementById('errRefresh').addEventListener('click',loadErrors);
+document.getElementById('whSet').addEventListener('click',function(){
+  if(!confirm('Đăng ký lại webhook?'))return;
+  gcall('adminSetWebhook',ADMIN_KEY).then(function(){toast('Xong');loadWebhook();}).catch(function(e){toast('Lỗi: '+e.message);});
+});
+function fillConfig(){
+  var c=STATE.config;
+  document.getElementById('cfgProvider').value=c.TRANSLATE_PROVIDER||'google_free';
+  document.getElementById('cfgApiKey').value=c.TRANSLATE_API_KEY||'';
+  document.getElementById('cfgSecret').value=c.SECRET_CMD||'';
+  document.getElementById('cfgCdAll').value=c.COOLDOWN_ALL||'';
+  document.getElementById('cfgCdDich').value=c.COOLDOWN_DICH||'';
+  document.getElementById('cfgAdminId').value=c.ADMIN_ID||'';
+}
+document.getElementById('cfgSave').addEventListener('click',function(){
+  var obj={TRANSLATE_PROVIDER:document.getElementById('cfgProvider').value,TRANSLATE_API_KEY:document.getElementById('cfgApiKey').value.trim(),SECRET_CMD:document.getElementById('cfgSecret').value.trim(),COOLDOWN_ALL:document.getElementById('cfgCdAll').value,COOLDOWN_DICH:document.getElementById('cfgCdDich').value,ADMIN_ID:document.getElementById('cfgAdminId').value.trim()};
+  var tok=document.getElementById('cfgToken').value.trim();
+  if(tok)obj.BOT_TOKEN=tok;
+  gcall('adminSetConfig',ADMIN_KEY,obj).then(function(){toast('Đã lưu cấu hình');document.getElementById('cfgToken').value='';return refresh();});
+});
+document.getElementById('apiCheck').addEventListener('click',function(){
+  var box=document.getElementById('apiCheckBox');box.textContent='Đang kiểm tra...';
+  gcall('adminCheckTranslate',ADMIN_KEY).then(function(r){
+    box.innerHTML=r.ok?('<span class="pill ok">OK</span> Provider: <b>'+esc(r.provider)+'</b> — "hello" → "'+esc(r.sample)+'"'):('<span class="pill err">Lỗi</span> '+esc(r.message));
+  }).catch(function(e){box.innerHTML='<span class="pill err">Lỗi: '+esc(e.message)+'</span>';});
+});
+function refresh(){
+  return gcall('adminInit',ADMIN_KEY).then(function(s){
+    STATE=s;
+    document.getElementById('statusLine').textContent='Nhóm: '+s.groups.length+' • Provider dịch: '+(s.config.TRANSLATE_PROVIDER||'google_free');
+    renderGroupsUI();fillConfig();loadMembers();
+  }).catch(function(e){toast('Lỗi tải dữ liệu: '+e.message);});
+}
+refresh().then(function(){loadWebhook();loadErrors();});
+</script>
+</body>
+</html>
