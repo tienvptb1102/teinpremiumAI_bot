@@ -73,6 +73,7 @@ code{background:#0b1220;padding:2px 6px;border-radius:6px;}
 <div class="tabs">
 <div class="tab active" data-p="broadcast">📢 Thông báo</div>
 <div class="tab" data-p="members">👥 Thành viên</div>
+<div class="tab" data-p="pusers">🙋 User riêng</div>
 <div class="tab" data-p="groups">🗂 Nhóm</div>
 <div class="tab" data-p="activity">📜 Nhật ký</div>
 <div class="tab" data-p="errors">🩺 Nhật ký lỗi</div>
@@ -113,6 +114,15 @@ code{background:#0b1220;padding:2px 6px;border-radius:6px;}
 <label>Tên hiển thị</label>
 <input id="addName" placeholder="vd: Nguyễn Văn A">
 <button id="addMemBtn">➕ Thêm vào nhóm đang chọn</button>
+</div>
+</div>
+
+<div class="panel" id="p-pusers">
+<div class="card">
+<h2>Người dùng riêng (nhắn riêng với bot)</h2>
+<p class="muted">Người lạ nhắn riêng bot sẽ hiện ở đây để bạn duyệt / từ chối / chặn. User đã duyệt chỉ dùng được <b>/dich</b> và <b>/time</b>.</p>
+<button class="sec" id="puRefresh" onclick="loadPrivateUsers()">🔄 Làm mới</button>
+<div id="puWrap" style="margin-top:8px"><p class="muted">Đang tải...</p></div>
 </div>
 </div>
 
@@ -170,6 +180,8 @@ code{background:#0b1220;padding:2px 6px;border-radius:6px;}
 <div><label>Chờ giữa 2 lần /all (giây)</label><input id="cfgCdAll" type="number"></div>
 <div><label>Chờ giữa 2 lần /dich (giây)</label><input id="cfgCdDich" type="number"></div>
 </div>
+<label>Giới hạn dịch/ngày cho user riêng</label>
+<input id="cfgDaily" type="number" placeholder="vd: 30">
 <label>Admin ID</label>
 <input id="cfgAdminId">
 <label>Bot Token (để trống nếu không đổi)</label>
@@ -394,10 +406,11 @@ function fillConfig(){
   $('cfgSecret').value=c.SECRET_CMD||'';
   $('cfgCdAll').value=c.COOLDOWN_ALL||'';
   $('cfgCdDich').value=c.COOLDOWN_DICH||'';
+  $('cfgDaily').value=c.PRIVATE_DAILY_LIMIT||'';
   $('cfgAdminId').value=c.ADMIN_ID||'';
 }
 $('cfgSave').addEventListener('click',function(){
-  var obj={TRANSLATE_PROVIDER:$('cfgProvider').value,TRANSLATE_API_KEY:$('cfgApiKey').value.trim(),SECRET_CMD:$('cfgSecret').value.trim(),COOLDOWN_ALL:$('cfgCdAll').value,COOLDOWN_DICH:$('cfgCdDich').value,ADMIN_ID:$('cfgAdminId').value.trim()};
+  var obj={TRANSLATE_PROVIDER:$('cfgProvider').value,TRANSLATE_API_KEY:$('cfgApiKey').value.trim(),SECRET_CMD:$('cfgSecret').value.trim(),COOLDOWN_ALL:$('cfgCdAll').value,COOLDOWN_DICH:$('cfgCdDich').value,ADMIN_ID:$('cfgAdminId').value.trim(),PRIVATE_DAILY_LIMIT:$('cfgDaily').value};
   var tok=$('cfgToken').value.trim();
   if(tok)obj.BOT_TOKEN=tok;
   api('setConfig',{payload:obj}).then(function(){toast('Đã lưu cấu hình');$('cfgToken').value='';return refresh();});
@@ -410,13 +423,42 @@ $('apiCheck').addEventListener('click',function(){
 });
 
 /* ===== Nạp dữ liệu ===== */
+function puStatusLabel(s){
+  return s==='approved'?'✅ Đã duyệt':s==='rejected'?'❌ Từ chối':s==='blocked'?'⛔ Bị chặn':'⏳ Chờ duyệt';
+}
+function loadPrivateUsers(){
+  var w=document.getElementById('puWrap');
+  if(!w) return;
+  w.innerHTML='<p class="muted">Đang tải...</p>';
+  api('privateUsers').then(function(list){
+    var pend=(list||[]).filter(function(u){return u.tinhTrang==='pending';}).length;
+    var tab=document.querySelector('.tab[data-p="pusers"]');
+    if(tab) tab.textContent='🙋 User riêng'+(pend?(' ('+pend+')'):'');
+    if(!list||!list.length){ w.innerHTML='<p class="muted">Chưa có người dùng riêng nào.</p>'; return; }
+    var h='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">'+
+      '<tr style="text-align:left;border-bottom:1px solid #ccc"><th>Tên</th><th>Username</th><th>ID</th><th>Yêu cầu</th><th>Trạng thái</th><th>Dịch</th><th>Hành động</th></tr>';
+    list.forEach(function(u){
+      var b='';
+      if(u.tinhTrang!=='approved') b+='<button class="sec" title="Duyệt" style="margin:2px;padding:5px 8px" onclick="puSet(\''+u.userId+'\',\'approved\')">✅</button>';
+      if(u.tinhTrang!=='rejected') b+='<button class="sec" title="Từ chối" style="margin:2px;padding:5px 8px" onclick="puSet(\''+u.userId+'\',\'rejected\')">❌</button>';
+      if(u.tinhTrang!=='blocked') b+='<button class="sec" title="Chặn" style="margin:2px;padding:5px 8px" onclick="puSet(\''+u.userId+'\',\'blocked\')">⛔</button>';
+      if(u.tinhTrang!=='pending') b+='<button class="sec" title="Đặt lại chờ duyệt / bỏ chặn" style="margin:2px;padding:5px 8px" onclick="puSet(\''+u.userId+'\',\'pending\')">🔄</button>';
+      h+='<tr style="border-bottom:1px solid #eee"><td>'+esc(u.hoTen)+'</td><td>'+(u.username?'@'+esc(u.username):'-')+'</td><td>'+esc(u.userId)+'</td><td>'+esc(u.ngayThamGia)+'</td><td>'+puStatusLabel(u.tinhTrang)+'</td><td>'+(u.soLanDich||0)+'</td><td style="white-space:nowrap">'+b+'</td></tr>';
+    });
+    h+='</table></div>';
+    w.innerHTML=h;
+  }).catch(function(e){ w.innerHTML='<p class="muted">Lỗi: '+esc(e.message)+'</p>'; });
+}
+window.puSet=function(uid,status){
+  api('setPrivate',{uid:uid,status:status}).then(function(){ toast('✅ Đã cập nhật'); loadPrivateUsers(); }).catch(function(e){ toast('Lỗi: '+e.message); });
+};
 function refresh(fromGate){
   if(!ADMIN_KEY){ showGate(''); return Promise.resolve(); }
   setStatus('','Đang tải dữ liệu...');
   return api('init').then(function(s){
     STATE=s; showApp();
     setStatus('live','Đang hoạt động • '+s.groups.length+' nhóm • Dịch: '+(s.config.TRANSLATE_PROVIDER||'google_free'));
-    renderGroups(); fillConfig(); loadMembers(); loadErrors(); loadActivity();
+    renderGroups(); fillConfig(); loadMembers(); loadErrors(); loadActivity(); loadPrivateUsers();
   }).catch(function(e){
     if(String(e.message).indexOf('UNAUTHORIZED')>=0){ showGate('Mã không đúng, nhập lại'); }
     else { setStatus('bad','Lỗi kết nối'); toast('Lỗi: '+e.message); if(fromGate) showGate('Không kết nối được: '+e.message); }
