@@ -191,7 +191,8 @@ try { if (window.Telegram && Telegram.WebApp) { Telegram.WebApp.ready(); Telegra
 var API_URL = "https://script.google.com/macros/s/AKfycbyBJ2MGY31qlKFyuAF0cihlqdSunx-2PRSm4AFu-1A0NqlskkftNC9UrfYCMQwOp9Ov1Q/exec";
 var STATE = { groups: [], config: {} };
 
-function getKey(){ return (location.hash||'').replace(/^#/, '').trim() || localStorage.getItem('tein_key') || ''; }
+function cleanKey(k){ return String(k||'').replace(/^#/, '').split('?')[0].split('&')[0].replace(/tgWebApp[\s\S]*$/i,'').trim(); }
+function getKey(){ var h=cleanKey(location.hash||''); return h || localStorage.getItem('tein_key') || ''; }
 function setKey(k){ localStorage.setItem('tein_key', k); }
 var ADMIN_KEY = getKey();
 
@@ -227,7 +228,7 @@ function showApp(){
   $('app').classList.remove('hidden');
 }
 $('gateBtn').addEventListener('click', function(){
-  var k = $('gateKey').value.trim();
+  var k = cleanKey($('gateKey').value);
   if(!k){ $('gateMsg').innerHTML='<span class="pill err">Hãy dán mã</span>'; return; }
   ADMIN_KEY = k; setKey(k);
   setStatus('','Đang kết nối...');
