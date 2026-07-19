@@ -380,8 +380,8 @@ function loadActivity(){
   $('actWrap').innerHTML='<p class="muted">Đang tải...</p>';
   api('getLog').then(function(rows){
     if(!rows.length){ $('actWrap').innerHTML='<p class="muted">Chưa có hoạt động nào.</p>'; return; }
-    var h='<table><tr><th>Thời gian</th><th>Hành động</th><th>Chi tiết</th></tr>';
-    rows.forEach(function(r){h+='<tr><td class="muted">'+esc(r[0])+'</td><td>'+esc(r[1])+'</td><td>'+esc(r[2])+'</td></tr>';});
+    var h='<table><tr><th>Thời gian</th><th>Hành động</th><th>Chi tiết (nhóm)</th><th>Nội dung</th></tr>';
+    rows.forEach(function(r){h+='<tr><td class="muted">'+esc(r[0])+'</td><td>'+esc(r[1])+'</td><td>'+esc(r[2])+'</td><td>'+esc(r[3]||'')+'</td></tr>';});
     $('actWrap').innerHTML=h+'</table>';
   }).catch(function(e){ $('actWrap').innerHTML='<span class="pill err">Lỗi: '+esc(e.message)+'</span>'; });
 }
