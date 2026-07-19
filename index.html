@@ -4,16 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<title>Bảng điều khiển Bot</title>
+<title>TEIN AI BOT</title>
 <style>
 :root{--bg:#0f172a;--card:#1e293b;--line:#334155;--txt:#e2e8f0;--muted:#94a3b8;--accent:#3b82f6;--ok:#22c55e;--err:#ef4444;}
 *{box-sizing:border-box;}
 body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--txt);}
 header{padding:16px 20px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10;}
-header h1{margin:0;font-size:18px;}
-header .sub{color:var(--muted);font-size:12px;margin-top:4px;}
-.tabs{display:flex;gap:6px;flex-wrap:wrap;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:56px;z-index:9;}
-.tab{padding:8px 12px;border-radius:8px;cursor:pointer;font-size:14px;color:var(--muted);}
+header h1{margin:0;font-size:22px;letter-spacing:.5px;}
+header .sub{color:var(--muted);font-size:12px;margin-top:2px;}
+header .status{font-size:12px;margin-top:8px;display:flex;align-items:center;gap:7px;color:var(--muted);}
+.dot{width:9px;height:9px;border-radius:50%;background:#64748b;display:inline-block;flex:0 0 auto;}
+.dot.live{background:var(--ok);box-shadow:0 0 0 3px rgba(34,197,94,.2);}
+.dot.bad{background:var(--err);box-shadow:0 0 0 3px rgba(239,68,68,.2);}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:86px;z-index:9;}
+.tab{padding:8px 12px;border-radius:8px;cursor:pointer;font-size:14px;color:var(--muted);white-space:nowrap;}
 .tab.active{background:var(--accent);color:#fff;}
 main{padding:16px;max-width:900px;margin:0 auto;}
 .panel{display:none;}
@@ -28,7 +32,7 @@ button.sec{background:#475569;}
 button.danger{background:var(--err);}
 button:disabled{opacity:.5;}
 table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;}
-th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);}
+th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:top;}
 th{color:var(--muted);}
 .row{display:flex;gap:10px;flex-wrap:wrap;}
 .row>div{flex:1;min-width:140px;}
@@ -41,38 +45,63 @@ th{color:var(--muted);}
 .toast.show{opacity:1;}
 .muted{color:var(--muted);font-size:12px;}
 code{background:#0b1220;padding:2px 6px;border-radius:6px;}
+.gate{max-width:420px;margin:40px auto;}
+.hidden{display:none!important;}
+.linkbtn{background:none;color:var(--muted);text-decoration:underline;padding:0;margin:0;font-size:12px;}
 </style>
 </head>
 <body>
 <header>
-<h1>🤖 Bảng điều khiển Bot</h1>
-<div class="sub" id="statusLine">Đang tải...</div>
+<h1>🤖 TEIN AI BOT</h1>
+<div class="sub">Bảng điều khiển bot</div>
+<div class="status" id="statusLine"><span class="dot" id="statusDot"></span> <span id="statusText">Đang kết nối...</span></div>
 </header>
+
+<!-- CỔNG NHẬP MÃ -->
+<div id="gate" class="gate hidden">
+<div class="card">
+<h2>🔑 Nhập mã quản trị</h2>
+<p class="muted">Dán ADMIN_KEY (lấy trong sheet Config của bot). Máy sẽ nhớ, lần sau không cần nhập lại.</p>
+<input id="gateKey" placeholder="vd: 07570f1fc61446ac" autocomplete="off">
+<button id="gateBtn">✅ Lưu &amp; kết nối</button>
+<div id="gateMsg" class="muted" style="margin-top:8px"></div>
+</div>
+</div>
+
+<!-- ỨNG DỤNG -->
+<div id="app" class="hidden">
 <div class="tabs">
 <div class="tab active" data-p="broadcast">📢 Thông báo</div>
 <div class="tab" data-p="members">👥 Thành viên</div>
 <div class="tab" data-p="groups">🗂 Nhóm</div>
-<div class="tab" data-p="status">🩺 Lỗi & Trạng thái</div>
-<div class="tab" data-p="config">🔐 Cấu hình & API</div>
+<div class="tab" data-p="activity">📜 Nhật ký</div>
+<div class="tab" data-p="errors">🩺 Nhật ký lỗi</div>
+<div class="tab" data-p="config">🔐 Cấu hình</div>
 </div>
 <main>
+
 <div class="panel active" id="p-broadcast">
 <div class="card">
 <h2>Gửi thông báo tới nhóm</h2>
 <label>Nội dung</label>
 <textarea id="bcContent" placeholder="Nhập nội dung..."></textarea>
-<label>Chọn nơi gửi</label>
+<label>Chọn nơi gửi (tích nhiều nhóm tùy ý)</label>
 <div class="chk"><input type="checkbox" id="bcAll"><label for="bcAll" style="margin:0;color:var(--txt)">Tất cả các nhóm</label></div>
 <div id="bcGroups"></div>
 <button id="bcSend">📢 Gửi thông báo</button>
 </div>
 </div>
+
 <div class="panel" id="p-members">
 <div class="card">
-<h2>Quản lý thành viên tag</h2>
+<h2>Thành viên tag theo nhóm</h2>
 <label>Chọn nhóm</label>
 <select id="memGroup"></select>
-<div id="memTableWrap"></div>
+<div class="row" style="margin-top:10px">
+<div><input id="memSearch" placeholder="🔍 Tìm theo tên / username / ID..."></div>
+<div style="flex:0 0 auto;min-width:auto"><button class="sec" id="memExport" style="margin-top:0">⬇️ Xuất CSV</button></div>
+</div>
+<div id="memWrap" style="margin-top:10px"><p class="muted">Chọn một nhóm để xem thành viên.</p></div>
 </div>
 <div class="card">
 <h2>Thêm thành viên thủ công</h2>
@@ -86,10 +115,11 @@ code{background:#0b1220;padding:2px 6px;border-radius:6px;}
 <button id="addMemBtn">➕ Thêm vào nhóm đang chọn</button>
 </div>
 </div>
+
 <div class="panel" id="p-groups">
 <div class="card">
-<h2>Danh sách nhóm</h2>
-<div id="grpTableWrap"></div>
+<h2>Danh sách nhóm đang quản lý</h2>
+<div id="grpWrap"><p class="muted">Đang tải...</p></div>
 </div>
 <div class="card">
 <h2>Thêm nhóm thủ công</h2>
@@ -100,19 +130,24 @@ code{background:#0b1220;padding:2px 6px;border-radius:6px;}
 <button id="addGrpBtn">➕ Thêm nhóm</button>
 </div>
 </div>
-<div class="panel" id="p-status">
+
+<div class="panel" id="p-activity">
 <div class="card">
-<h2>Trạng thái Webhook</h2>
-<div id="whBox">Đang tải...</div>
-<button class="sec" id="whCheck">🔄 Kiểm tra lại</button>
-<button id="whSet">🔁 Đăng ký lại Webhook</button>
+<h2>Nhật ký hoạt động gần đây</h2>
+<p class="muted">Các thao tác quản trị: gửi thông báo, thêm/xoá thành viên & nhóm, đổi cấu hình.</p>
+<button class="sec" id="actRefresh">🔄 Làm mới</button>
+<div id="actWrap" style="margin-top:8px"></div>
 </div>
+</div>
+
+<div class="panel" id="p-errors">
 <div class="card">
 <h2>Nhật ký lỗi gần đây</h2>
 <button class="sec" id="errRefresh">🔄 Làm mới</button>
-<div id="errWrap"></div>
+<div id="errWrap" style="margin-top:8px"></div>
 </div>
 </div>
+
 <div class="panel" id="p-config">
 <div class="card">
 <h2>API dịch thuật</h2>
@@ -141,195 +176,253 @@ code{background:#0b1220;padding:2px 6px;border-radius:6px;}
 <input id="cfgToken" placeholder="Đang dùng: đã ẩn">
 <button id="cfgSave">💾 Lưu cấu hình</button>
 </div>
+<div class="card">
+<button class="linkbtn" id="changeKey">Đổi mã quản trị</button>
 </div>
+</div>
+
 </main>
+</div>
+
 <div class="toast" id="toast"></div>
 <script>
 try { if (window.Telegram && Telegram.WebApp) { Telegram.WebApp.ready(); Telegram.WebApp.expand(); document.body.style.paddingBottom='80px'; } } catch(e){}
-/* ==== CẤU HÌNH ==== */
-// Địa chỉ Web App (Apps Script) — đóng vai trò "kho dữ liệu"/API. Link này KHÔNG đổi khi bạn Deploy phiên bản mới.
+
 var API_URL = "https://script.google.com/macros/s/AKfycbyBJ2MGY31qlKFyuAF0cihlqdSunx-2PRSm4AFu-1A0NqlskkftNC9UrfYCMQwOp9Ov1Q/exec";
-// Mã quản trị: lấy từ sau dấu # trên link (không lưu trong file), nếu trống thì hỏi.
-var ADMIN_KEY = (location.hash || "").replace(/^#/, "").trim();
-if (!ADMIN_KEY) { try { ADMIN_KEY = (prompt("Nhập mã quản trị (ADMIN_KEY):") || "").trim(); } catch(e){} }
 var STATE = { groups: [], config: {} };
-var API_MAP = {
-  adminInit:         { api:"init",          args:[] },
-  adminGetMembers:   { api:"members",       args:["gid"] },
-  adminRenameGroup:  { api:"renameGroup",   args:["gid","name"] },
-  adminDeleteGroup:  { api:"deleteGroup",   args:["gid"] },
-  adminDeleteMember: { api:"deleteMember",  args:["gid","uid"] },
-  adminAddMember:    { api:"addMember",     args:["gid","uid","un","nm"] },
-  adminAddGroup:     { api:"addGroup",      args:["gid","name"] },
-  adminBroadcast:    { api:"broadcast",     args:["targets","content"], json:["targets"] },
-  adminCheckWebhook: { api:"checkWebhook",  args:[] },
-  adminGetErrors:    { api:"getErrors",     args:[] },
-  adminSetWebhook:   { api:"setWebhook",    args:[] },
-  adminSetConfig:    { api:"setConfig",     args:["payload"], json:["payload"] },
-  adminCheckTranslate:{ api:"checkTranslate", args:[] }
-};
-function gcall(name){
-  var extra = Array.prototype.slice.call(arguments, 2); // bỏ name + ADMIN_KEY
-  var m = API_MAP[name];
-  return new Promise(function(res, rej){
-    if(!m){ rej(new Error("Unknown API: "+name)); return; }
-    if(!ADMIN_KEY){ rej(new Error("Thiếu mã quản trị")); return; }
-    var qs = "?api=" + encodeURIComponent(m.api) + "&key=" + encodeURIComponent(ADMIN_KEY);
-    (m.args||[]).forEach(function(argName, i){
-      var v = extra[i];
-      if(m.json && m.json.indexOf(argName) >= 0) v = JSON.stringify(v);
-      qs += "&" + argName + "=" + encodeURIComponent(v == null ? "" : v);
-    });
-    fetch(API_URL + qs, { method:"GET" })
-      .then(function(r){ return r.json(); })
-      .then(function(j){
-        if(j && j.ok) res(j.data);
-        else rej(new Error((j && j.error) || "Lỗi không rõ"));
-      })
-      .catch(function(e){ rej(new Error(e && e.message || "Lỗi mạng")); });
+
+function getKey(){ return (location.hash||'').replace(/^#/, '').trim() || localStorage.getItem('tein_key') || ''; }
+function setKey(k){ localStorage.setItem('tein_key', k); }
+var ADMIN_KEY = getKey();
+
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function $(id){return document.getElementById(id);}
+function toast(m){var t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2600);}
+function setStatus(kind,text){var d=$('statusDot');d.className='dot'+(kind==='live'?' live':kind==='bad'?' bad':'');$('statusText').textContent=text;}
+
+function api(action, params){
+  params = params || {};
+  var qs = '?api=' + encodeURIComponent(action) + '&key=' + encodeURIComponent(ADMIN_KEY);
+  Object.keys(params).forEach(function(k){
+    var v = params[k];
+    if (v !== null && typeof v === 'object') v = JSON.stringify(v);
+    qs += '&' + k + '=' + encodeURIComponent(v==null?'':v);
+  });
+  return fetch(API_URL + qs).then(function(r){return r.json();}).then(function(j){
+    if (j && j.ok) return j.data;
+    throw new Error((j && j.error) || 'Lỗi không rõ');
   });
 }
-function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2600);}
-function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+/* ===== Cổng nhập mã ===== */
+function showGate(msg){
+  $('app').classList.add('hidden');
+  $('gate').classList.remove('hidden');
+  $('gateKey').value = ADMIN_KEY || '';
+  $('gateMsg').innerHTML = msg ? ('<span class="pill err">'+esc(msg)+'</span>') : '';
+  setStatus('bad','Chưa kết nối');
+}
+function showApp(){
+  $('gate').classList.add('hidden');
+  $('app').classList.remove('hidden');
+}
+$('gateBtn').addEventListener('click', function(){
+  var k = $('gateKey').value.trim();
+  if(!k){ $('gateMsg').innerHTML='<span class="pill err">Hãy dán mã</span>'; return; }
+  ADMIN_KEY = k; setKey(k);
+  setStatus('','Đang kết nối...');
+  refresh(true);
+});
+$('changeKey').addEventListener('click', function(){ showGate(''); });
+
+/* ===== Tabs ===== */
 document.querySelectorAll('.tab').forEach(function(tab){
   tab.addEventListener('click',function(){
     document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
     document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
     tab.classList.add('active');
-    document.getElementById('p-'+tab.getAttribute('data-p')).classList.add('active');
+    $('p-'+tab.getAttribute('data-p')).classList.add('active');
   });
 });
-function renderGroupsUI(){
-  var bc=document.getElementById('bcGroups');bc.innerHTML='';
+
+/* ===== Render ===== */
+function renderGroups(){
+  var bc=$('bcGroups'); bc.innerHTML='';
   STATE.groups.forEach(function(g){
     var id='bcg_'+g.id;
     bc.innerHTML+='<div class="chk"><input type="checkbox" class="bcg" value="'+esc(g.id)+'" id="'+id+'"><label for="'+id+'" style="margin:0;color:var(--txt)">'+esc(g.name||g.id)+'</label></div>';
   });
-  var sel=document.getElementById('memGroup');sel.innerHTML='';
+  var sel=$('memGroup'); var cur=sel.value; sel.innerHTML='<option value="">-- chọn nhóm --</option>';
   STATE.groups.forEach(function(g){var o=document.createElement('option');o.value=g.id;o.textContent=(g.name||g.id);sel.appendChild(o);});
-  var gw=document.getElementById('grpTableWrap');
-  if(!STATE.groups.length){gw.innerHTML='<p class="muted">Chưa có nhóm nào.</p>';}
-  else{
-    var h='<table><tr><th>Tên</th><th>Group ID</th><th></th></tr>';
-    STATE.groups.forEach(function(g){
-      h+='<tr><td><input value="'+esc(g.name)+'" class="gname" data-id="'+esc(g.id)+'" style="padding:6px"></td><td><code>'+esc(g.id)+'</code></td><td><button class="sec btnRename" data-id="'+esc(g.id)+'">Lưu tên</button> <button class="danger btnDelGroup" data-id="'+esc(g.id)+'">Xoá</button></td></tr>';
-    });
-    gw.innerHTML=h+'</table>';
-  }
+  if(cur) sel.value=cur;
+  var gw=$('grpWrap');
+  if(!STATE.groups.length){ gw.innerHTML='<p class="muted">Chưa có nhóm nào. Bot sẽ tự thêm khi được kéo vào nhóm, hoặc thêm thủ công bên dưới.</p>'; return; }
+  var h='<table><tr><th>Tên</th><th>Group ID</th><th></th></tr>';
+  STATE.groups.forEach(function(g){
+    h+='<tr><td><input value="'+esc(g.name)+'" class="gname" data-id="'+esc(g.id)+'" style="padding:6px"></td><td><code>'+esc(g.id)+'</code></td><td><button class="sec btnRename" data-id="'+esc(g.id)+'">Lưu tên</button> <button class="danger btnDelGroup" data-id="'+esc(g.id)+'">Xoá</button></td></tr>';
+  });
+  gw.innerHTML=h+'</table>';
+}
+
+var MEMBERS=[];
+function renderMembers(){
+  var gid=$('memGroup').value;
+  var q=($('memSearch').value||'').toLowerCase().trim();
+  if(!MEMBERS.length){ $('memWrap').innerHTML='<p class="muted">Nhóm này chưa có thành viên.</p>'; return; }
+  var list=MEMBERS.filter(function(m){
+    if(!q)return true;
+    return (String(m.hoTen||'').toLowerCase().indexOf(q)>=0)||(String(m.username||'').toLowerCase().indexOf(q)>=0)||(String(m.userId||'').toLowerCase().indexOf(q)>=0);
+  });
+  if(!list.length){ $('memWrap').innerHTML='<p class="muted">Không tìm thấy thành viên khớp "'+esc(q)+'".</p>'; return; }
+  var h='<p class="muted">'+list.length+'/'+MEMBERS.length+' thành viên</p><table><tr><th>Tên</th><th>Username</th><th>User ID</th><th>Ngày tham gia</th><th></th></tr>';
+  list.forEach(function(m){
+    h+='<tr><td>'+esc(m.hoTen)+'</td><td>'+(m.username?('@'+esc(m.username)):'<span class="muted">(không có)</span>')+'</td><td><code>'+esc(m.userId)+'</code></td><td class="muted">'+esc(m.ngay||'')+'</td><td><button class="danger btnDelMem" data-gid="'+esc(gid)+'" data-uid="'+esc(m.userId)+'">Xoá</button></td></tr>';
+  });
+  $('memWrap').innerHTML=h+'</table>';
 }
 function loadMembers(){
-  var gid=document.getElementById('memGroup').value;
-  if(!gid){document.getElementById('memTableWrap').innerHTML='<p class="muted">Chọn một nhóm.</p>';return;}
-  document.getElementById('memTableWrap').innerHTML='<p class="muted">Đang tải...</p>';
-  gcall('adminGetMembers',ADMIN_KEY,gid).then(function(list){
-    if(!list.length){document.getElementById('memTableWrap').innerHTML='<p class="muted">Nhóm này chưa có thành viên.</p>';return;}
-    var h='<table><tr><th>Tên</th><th>Username</th><th>User ID</th><th></th></tr>';
-    list.forEach(function(m){
-      h+='<tr><td>'+esc(m.hoTen)+'</td><td>'+(m.username?('@'+esc(m.username)):'<span class="muted">(không có)</span>')+'</td><td><code>'+esc(m.userId)+'</code></td><td><button class="danger btnDelMem" data-gid="'+esc(gid)+'" data-uid="'+esc(m.userId)+'">Xoá</button></td></tr>';
-    });
-    document.getElementById('memTableWrap').innerHTML=h+'</table>';
-  }).catch(function(e){toast('Lỗi: '+e.message);});
+  var gid=$('memGroup').value;
+  MEMBERS=[];
+  if(!gid){ $('memWrap').innerHTML='<p class="muted">Chọn một nhóm để xem thành viên.</p>'; return; }
+  $('memWrap').innerHTML='<p class="muted">Đang tải...</p>';
+  api('members',{gid:gid}).then(function(list){
+    MEMBERS=list||[];
+    renderMembers();
+  }).catch(function(e){ $('memWrap').innerHTML='<span class="pill err">Lỗi: '+esc(e.message)+'</span>'; });
 }
-document.getElementById('grpTableWrap').addEventListener('click',function(ev){
+$('memGroup').addEventListener('change', loadMembers);
+$('memSearch').addEventListener('input', renderMembers);
+$('memExport').addEventListener('click', function(){
+  if(!MEMBERS.length){ toast('Chưa có dữ liệu để xuất'); return; }
+  var gsel=$('memGroup'); var gname=(gsel.options[gsel.selectedIndex]?gsel.options[gsel.selectedIndex].text:'nhom');
+  var rows=[['HoTen','Username','UserID','NgayThamGia']];
+  MEMBERS.forEach(function(m){ rows.push([m.hoTen||'', m.username||'', m.userId||'', m.ngay||'']); });
+  var csv=rows.map(function(r){return r.map(function(c){var s=String(c==null?'':c);return '"'+s.replace(/"/g,'""')+'"';}).join(',');}).join('\r\n');
+  csv='\ufeff'+csv;
+  try{
+    var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');a.href=url;a.download='thanhvien_'+gname.replace(/[^a-zA-Z0-9]/g,'_')+'.csv';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(function(){URL.revokeObjectURL(url);},1000);
+    toast('Đã tạo file CSV');
+  }catch(e){
+    try{ navigator.clipboard.writeText(csv); toast('Không tải được file — đã CHÉP dữ liệu, dán vào Excel/Sheets'); }
+    catch(e2){ toast('Thiết bị không hỗ trợ xuất file ở đây'); }
+  }
+});
+
+$('memWrap').addEventListener('click',function(ev){
+  var b=ev.target;
+  if(b.classList.contains('btnDelMem')){
+    if(!confirm('Xoá thành viên này?'))return;
+    api('deleteMember',{gid:b.getAttribute('data-gid'),uid:b.getAttribute('data-uid')}).then(function(){toast('Đã xoá');loadMembers();}).catch(function(e){toast('Lỗi: '+e.message);});
+  }
+});
+$('addMemBtn').addEventListener('click',function(){
+  var gid=$('memGroup').value;
+  if(!gid){toast('Chưa chọn nhóm');return;}
+  var uid=$('addUid').value.trim();
+  var un=$('addUname').value.trim().replace(/^@/,'');
+  var nm=$('addName').value.trim();
+  if(!uid&&!un){toast('Cần ít nhất User ID hoặc Username');return;}
+  api('addMember',{gid:gid,uid:uid,un:un,nm:nm}).then(function(r){
+    if(r===false){toast('Người này đã có trong nhóm');}
+    else{toast('Đã thêm');$('addUid').value='';$('addUname').value='';$('addName').value='';loadMembers();}
+  }).catch(function(e){toast('Lỗi: '+e.message);});
+});
+
+$('grpWrap').addEventListener('click',function(ev){
   var b=ev.target;
   if(b.classList.contains('btnRename')){
     var gid=b.getAttribute('data-id');
     var inp=document.querySelector('.gname[data-id="'+gid+'"]');
-    gcall('adminRenameGroup',ADMIN_KEY,gid,inp?inp.value:'').then(function(){toast('Đã lưu tên');return refresh();});
+    api('renameGroup',{gid:gid,name:inp?inp.value:''}).then(function(){toast('Đã lưu tên');return refresh();});
   }else if(b.classList.contains('btnDelGroup')){
     if(!confirm('Xoá nhóm này?'))return;
-    gcall('adminDeleteGroup',ADMIN_KEY,b.getAttribute('data-id')).then(function(){toast('Đã xoá nhóm');return refresh();});
+    api('deleteGroup',{gid:b.getAttribute('data-id')}).then(function(){toast('Đã xoá nhóm');return refresh();});
   }
 });
-document.getElementById('memTableWrap').addEventListener('click',function(ev){
-  var b=ev.target;
-  if(b.classList.contains('btnDelMem')){
-    if(!confirm('Xoá thành viên này?'))return;
-    gcall('adminDeleteMember',ADMIN_KEY,b.getAttribute('data-gid'),b.getAttribute('data-uid')).then(function(){toast('Đã xoá');loadMembers();});
-  }
-});
-document.getElementById('memGroup').addEventListener('change',loadMembers);
-document.getElementById('addMemBtn').addEventListener('click',function(){
-  var gid=document.getElementById('memGroup').value;
-  if(!gid){toast('Chưa chọn nhóm');return;}
-  var uid=document.getElementById('addUid').value.trim();
-  var un=document.getElementById('addUname').value.trim().replace(/^@/,'');
-  var nm=document.getElementById('addName').value.trim();
-  if(!uid&&!un){toast('Cần ít nhất User ID hoặc Username');return;}
-  gcall('adminAddMember',ADMIN_KEY,gid,uid,un,nm).then(function(r){
-    if(r===false){toast('Người này đã có trong nhóm');}else{toast('Đã thêm');document.getElementById('addUid').value='';document.getElementById('addUname').value='';document.getElementById('addName').value='';loadMembers();}
-  }).catch(function(e){toast('Lỗi: '+e.message);});
-});
-document.getElementById('addGrpBtn').addEventListener('click',function(){
-  var gid=document.getElementById('addGid').value.trim();
-  var nm=document.getElementById('addGname').value.trim();
+$('addGrpBtn').addEventListener('click',function(){
+  var gid=$('addGid').value.trim();
+  var nm=$('addGname').value.trim();
   if(!gid){toast('Cần Group ID');return;}
-  gcall('adminAddGroup',ADMIN_KEY,gid,nm).then(function(){toast('Đã thêm nhóm');document.getElementById('addGid').value='';document.getElementById('addGname').value='';return refresh();});
+  api('addGroup',{gid:gid,name:nm}).then(function(){toast('Đã thêm nhóm');$('addGid').value='';$('addGname').value='';return refresh();});
 });
-document.getElementById('bcSend').addEventListener('click',function(){
-  var content=document.getElementById('bcContent').value.trim();
+
+$('bcSend').addEventListener('click',function(){
+  var content=$('bcContent').value.trim();
   if(!content){toast('Chưa nhập nội dung');return;}
   var targets=[];
-  if(document.getElementById('bcAll').checked){targets=STATE.groups.map(function(g){return g.id;});}
+  if($('bcAll').checked){targets=STATE.groups.map(function(g){return g.id;});}
   else{document.querySelectorAll('.bcg:checked').forEach(function(c){targets.push(c.value);});}
   if(!targets.length){toast('Chưa chọn nhóm');return;}
   if(!confirm('Gửi tới '+targets.length+' nhóm?'))return;
   var btn=this;btn.disabled=true;btn.textContent='Đang gửi...';
-  gcall('adminBroadcast',ADMIN_KEY,targets,content).then(function(r){
-    toast('Đã gửi tới '+r.ok+'/'+r.total+' nhóm');btn.disabled=false;btn.textContent='📢 Gửi thông báo';
-  }).catch(function(e){toast('Lỗi: '+e.message);btn.disabled=false;btn.textContent='📢 Gửi thông báo';});
+  api('broadcast',{targets:targets,content:content}).then(function(r){
+    toast('Đã gửi tới '+r.ok+'/'+r.total+' nhóm');$('bcContent').value='';$('bcAll').checked=false;document.querySelectorAll('.bcg:checked').forEach(function(c){c.checked=false;});
+  }).catch(function(e){toast('Lỗi: '+e.message);}).then(function(){btn.disabled=false;btn.textContent='📢 Gửi thông báo';});
 });
-function loadWebhook(){
-  document.getElementById('whBox').innerHTML='Đang kiểm tra...';
-  gcall('adminCheckWebhook',ADMIN_KEY).then(function(w){
-    var ok=w.url&&!w.last_error_message;
-    document.getElementById('whBox').innerHTML='<p>Trạng thái: '+(ok?'<span class="pill ok">Đang chạy</span>':'<span class="pill err">Có vấn đề</span>')+'</p><p class="muted">URL: <code>'+esc(w.url||'(chưa đặt)')+'</code></p><p class="muted">Đang chờ: '+(w.pending_update_count||0)+'</p>'+(w.last_error_message?('<p class="muted">Lỗi gần nhất: '+esc(w.last_error_message)+'</p>'):'');
-  }).catch(function(e){document.getElementById('whBox').innerHTML='<span class="pill err">Lỗi: '+esc(e.message)+'</span>';});
-}
+
 function loadErrors(){
-  document.getElementById('errWrap').innerHTML='<p class="muted">Đang tải...</p>';
-  gcall('adminGetErrors',ADMIN_KEY).then(function(rows){
-    if(!rows.length){document.getElementById('errWrap').innerHTML='<p class="muted">Không có lỗi nào.</p>';return;}
+  $('errWrap').innerHTML='<p class="muted">Đang tải...</p>';
+  api('getErrors').then(function(rows){
+    if(!rows.length){ $('errWrap').innerHTML='<p class="muted">Không có lỗi nào. 🎉</p>'; return; }
     var h='<table><tr><th>Thời gian</th><th>Mã</th><th>Hàm</th><th>Chi tiết</th></tr>';
-    rows.forEach(function(r){h+='<tr><td>'+esc(r[0])+'</td><td>'+esc(r[1])+'</td><td>'+esc(r[2])+'</td><td>'+esc(r[3])+'</td></tr>';});
-    document.getElementById('errWrap').innerHTML=h+'</table>';
-  }).catch(function(e){document.getElementById('errWrap').innerHTML='<span class="pill err">Lỗi: '+esc(e.message)+'</span>';});
+    rows.forEach(function(r){h+='<tr><td class="muted">'+esc(r[0])+'</td><td>'+esc(r[1])+'</td><td>'+esc(r[2])+'</td><td>'+esc(r[3])+'</td></tr>';});
+    $('errWrap').innerHTML=h+'</table>';
+  }).catch(function(e){ $('errWrap').innerHTML='<span class="pill err">Lỗi: '+esc(e.message)+'</span>'; });
 }
-document.getElementById('whCheck').addEventListener('click',loadWebhook);
-document.getElementById('errRefresh').addEventListener('click',loadErrors);
-document.getElementById('whSet').addEventListener('click',function(){
-  if(!confirm('Đăng ký lại webhook?'))return;
-  gcall('adminSetWebhook',ADMIN_KEY).then(function(){toast('Xong');loadWebhook();}).catch(function(e){toast('Lỗi: '+e.message);});
-});
+$('errRefresh').addEventListener('click', loadErrors);
+
+function loadActivity(){
+  $('actWrap').innerHTML='<p class="muted">Đang tải...</p>';
+  api('getLog').then(function(rows){
+    if(!rows.length){ $('actWrap').innerHTML='<p class="muted">Chưa có hoạt động nào.</p>'; return; }
+    var h='<table><tr><th>Thời gian</th><th>Hành động</th><th>Chi tiết</th></tr>';
+    rows.forEach(function(r){h+='<tr><td class="muted">'+esc(r[0])+'</td><td>'+esc(r[1])+'</td><td>'+esc(r[2])+'</td></tr>';});
+    $('actWrap').innerHTML=h+'</table>';
+  }).catch(function(e){ $('actWrap').innerHTML='<span class="pill err">Lỗi: '+esc(e.message)+'</span>'; });
+}
+$('actRefresh').addEventListener('click', loadActivity);
+
 function fillConfig(){
   var c=STATE.config;
-  document.getElementById('cfgProvider').value=c.TRANSLATE_PROVIDER||'google_free';
-  document.getElementById('cfgApiKey').value=c.TRANSLATE_API_KEY||'';
-  document.getElementById('cfgSecret').value=c.SECRET_CMD||'';
-  document.getElementById('cfgCdAll').value=c.COOLDOWN_ALL||'';
-  document.getElementById('cfgCdDich').value=c.COOLDOWN_DICH||'';
-  document.getElementById('cfgAdminId').value=c.ADMIN_ID||'';
+  $('cfgProvider').value=c.TRANSLATE_PROVIDER||'google_free';
+  $('cfgApiKey').value=c.TRANSLATE_API_KEY||'';
+  $('cfgSecret').value=c.SECRET_CMD||'';
+  $('cfgCdAll').value=c.COOLDOWN_ALL||'';
+  $('cfgCdDich').value=c.COOLDOWN_DICH||'';
+  $('cfgAdminId').value=c.ADMIN_ID||'';
 }
-document.getElementById('cfgSave').addEventListener('click',function(){
-  var obj={TRANSLATE_PROVIDER:document.getElementById('cfgProvider').value,TRANSLATE_API_KEY:document.getElementById('cfgApiKey').value.trim(),SECRET_CMD:document.getElementById('cfgSecret').value.trim(),COOLDOWN_ALL:document.getElementById('cfgCdAll').value,COOLDOWN_DICH:document.getElementById('cfgCdDich').value,ADMIN_ID:document.getElementById('cfgAdminId').value.trim()};
-  var tok=document.getElementById('cfgToken').value.trim();
+$('cfgSave').addEventListener('click',function(){
+  var obj={TRANSLATE_PROVIDER:$('cfgProvider').value,TRANSLATE_API_KEY:$('cfgApiKey').value.trim(),SECRET_CMD:$('cfgSecret').value.trim(),COOLDOWN_ALL:$('cfgCdAll').value,COOLDOWN_DICH:$('cfgCdDich').value,ADMIN_ID:$('cfgAdminId').value.trim()};
+  var tok=$('cfgToken').value.trim();
   if(tok)obj.BOT_TOKEN=tok;
-  gcall('adminSetConfig',ADMIN_KEY,obj).then(function(){toast('Đã lưu cấu hình');document.getElementById('cfgToken').value='';return refresh();});
+  api('setConfig',{payload:obj}).then(function(){toast('Đã lưu cấu hình');$('cfgToken').value='';return refresh();});
 });
-document.getElementById('apiCheck').addEventListener('click',function(){
-  var box=document.getElementById('apiCheckBox');box.textContent='Đang kiểm tra...';
-  gcall('adminCheckTranslate',ADMIN_KEY).then(function(r){
+$('apiCheck').addEventListener('click',function(){
+  var box=$('apiCheckBox');box.textContent='Đang kiểm tra...';
+  api('checkTranslate').then(function(r){
     box.innerHTML=r.ok?('<span class="pill ok">OK</span> Provider: <b>'+esc(r.provider)+'</b> — "hello" → "'+esc(r.sample)+'"'):('<span class="pill err">Lỗi</span> '+esc(r.message));
   }).catch(function(e){box.innerHTML='<span class="pill err">Lỗi: '+esc(e.message)+'</span>';});
 });
-function refresh(){
-  return gcall('adminInit',ADMIN_KEY).then(function(s){
-    STATE=s;
-    document.getElementById('statusLine').textContent='Nhóm: '+s.groups.length+' • Provider dịch: '+(s.config.TRANSLATE_PROVIDER||'google_free');
-    renderGroupsUI();fillConfig();loadMembers();
-  }).catch(function(e){toast('Lỗi tải dữ liệu: '+e.message);});
+
+/* ===== Nạp dữ liệu ===== */
+function refresh(fromGate){
+  if(!ADMIN_KEY){ showGate(''); return Promise.resolve(); }
+  setStatus('','Đang tải dữ liệu...');
+  return api('init').then(function(s){
+    STATE=s; showApp();
+    setStatus('live','Đang hoạt động • '+s.groups.length+' nhóm • Dịch: '+(s.config.TRANSLATE_PROVIDER||'google_free'));
+    renderGroups(); fillConfig(); loadMembers(); loadErrors(); loadActivity();
+  }).catch(function(e){
+    if(String(e.message).indexOf('UNAUTHORIZED')>=0){ showGate('Mã không đúng, nhập lại'); }
+    else { setStatus('bad','Lỗi kết nối'); toast('Lỗi: '+e.message); if(fromGate) showGate('Không kết nối được: '+e.message); }
+  });
 }
-refresh().then(function(){loadWebhook();loadErrors();});
+
+if(!ADMIN_KEY){ showGate(''); } else { refresh(); }
 </script>
 </body>
 </html>
