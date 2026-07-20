@@ -33,6 +33,8 @@ button.danger{background:var(--err);}
 button:disabled{opacity:.5;}
 table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;}
 th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:top;}
+.errDetail{word-break:break-all;overflow-wrap:anywhere;max-width:360px;font-size:12px;}
+#errWrap{overflow-x:auto;}
 th{color:var(--muted);}
 .row{display:flex;gap:10px;flex-wrap:wrap;}
 .row>div{flex:1;min-width:140px;}
@@ -377,13 +379,19 @@ $('bcSend').addEventListener('click',function(){
   }).catch(function(e){toast('Lỗi: '+e.message);}).then(function(){btn.disabled=false;btn.textContent='📢 Gửi thông báo';});
 });
 
+function copyText(t){
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(function(){toast('Đã copy mã lỗi');},function(){fallbackCopy(t);});}
+  else{fallbackCopy(t);}
+}
+function fallbackCopy(t){var ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand('copy');toast('Đã copy mã lỗi');}catch(e){toast('Không copy được');}document.body.removeChild(ta);}
 function loadErrors(){
   $('errWrap').innerHTML='<p class="muted">Đang tải...</p>';
   api('getErrors').then(function(rows){
     if(!rows.length){ $('errWrap').innerHTML='<p class="muted">Không có lỗi nào. 🎉</p>'; return; }
-    var h='<table><tr><th>Thời gian</th><th>Mã</th><th>Hàm</th><th>Chi tiết</th></tr>';
-    rows.forEach(function(r){h+='<tr><td class="muted">'+esc(r[0])+'</td><td>'+esc(r[1])+'</td><td>'+esc(r[2])+'</td><td>'+esc(r[3])+'</td></tr>';});
+    var h='<table><tr><th>Thời gian</th><th>Mã</th><th>Hàm</th><th>Chi tiết</th><th></th></tr>';
+    rows.forEach(function(r){var full=r[0]+' | '+r[1]+' | '+r[2]+' | '+r[3];h+='<tr><td class="muted">'+esc(r[0])+'</td><td>'+esc(r[1])+'</td><td>'+esc(r[2])+'</td><td class="errDetail">'+esc(r[3])+'</td><td><button class="sec btnCopyErr" data-copy="'+esc(full)+'" style="margin-top:0;padding:6px 8px;white-space:nowrap">📋 Copy</button></td></tr>';});
     $('errWrap').innerHTML=h+'</table>';
+    Array.prototype.forEach.call(document.querySelectorAll('.btnCopyErr'),function(b){b.addEventListener('click',function(){copyText(b.getAttribute('data-copy'));});});
   }).catch(function(e){ $('errWrap').innerHTML='<span class="pill err">Lỗi: '+esc(e.message)+'</span>'; });
 }
 $('errRefresh').addEventListener('click', loadErrors);
